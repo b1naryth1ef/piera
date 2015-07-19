@@ -1,0 +1,4 @@
+build/
+dist/
+piera.egg-info/
+*.pyc
