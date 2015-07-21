@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 from .backends import YAMLBackend, JSONBackend
 
-lookup = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"]([^"']*)["']\)\}''')
-resolve = re.compile(r'''%\{([^\}]*)\}''')
+function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"]([^"']*)["']\)\}''')
+interpolate = re.compile(r'''%\{([^\}]*)\}''')
 
 class Hiera(object):
     """
@@ -58,7 +58,6 @@ class Hiera(object):
         if not len(self.backends):
             raise Exception("No backends could be loaded")
 
-        # self.data_dir = os.path.join(os.path.dirname(self.base_file), self.base[':' + self.backend][':datadir'])
         self.hierarchy = []
 
         if not ':hierarchy' in self.base:
@@ -99,7 +98,7 @@ class Hiera(object):
         Returns true if any resolving or interpolation can be done on the provided
         string
         """
-        if isinstance(s, str) and (lookup.findall(s) or resolve.findall(s)):
+        if isinstance(s, str) and (function.findall(s) or interpolate.findall(s)):
             return True
         return False
 
@@ -108,11 +107,11 @@ class Hiera(object):
         Attempts to fully resolve a hiera function call within a value. This includes
         interpolation for relevant calls.
         """
-        calls = lookup.findall(s)
+        calls = function.findall(s)
         
         # If this is an alias, just replace it (doesn't require interpolation)
         if len(calls) == 1 and calls[0][0] == 'alias':
-            if lookup.sub("", s) != "":
+            if function.sub("", s) != "":
                 raise Exception("Alias can not be used for string interpolation: `{}`".format(s))
             return self.get_key(calls[0][1], paths, context)
 
@@ -134,7 +133,7 @@ class Hiera(object):
                 raise Exception("Resolved value is not a string for function call: `{}`".format(s))
 
             # Replace only the current function call with our resolved value
-            s = lookup.sub(replace, s, 1)
+            s = function.sub(replace, s, 1)
         
         return s
 
@@ -142,10 +141,10 @@ class Hiera(object):
         """
         Attempts to resolve context-based string interpolation
         """
-        interps = resolve.findall(s)
+        interps = interpolate.findall(s)
 
         for i in interps:
-            s = resolve.sub(context.get(i), s, 1)
+            s = interpolate.sub(context.get(i), s, 1)
 
         return s
 
