@@ -1,20 +1,10 @@
-import re, os, yaml
+import re, os
 from collections import OrderedDict
 
+from .backends import YAMLBackend, JSONBackend
+
 lookup = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"]([^"']*)["']\)\}''')
-
-def yaml_load_ordered(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
-    class OrderedLoader(Loader):
-        pass
-
-    def construct_mapping(loader, node):
-        loader.flatten_mapping(node)
-        return object_pairs_hook(loader.construct_pairs(node))
-
-    OrderedLoader.add_constructor(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            construct_mapping)
-    return yaml.load(stream, OrderedLoader)
+resolve = re.compile(r'''%\{([^\}]*)\}''')
 
 class Hiera(object):
     """
@@ -22,27 +12,57 @@ class Hiera(object):
     Hiera data. It takes a base-hiera config YAML file, and exposes methods
     to retrieve and fully resolve Hiera data.
 
-    :param base_file: The Hiera base configuration file
+    :param base_file: The Hiera base configuration file path or file-like object
+    :param backends: A list of backends to use for loading, by default this is
+        YAMLBackend and JSONBackend
     :param context: Any additional kwargs will be passed in as a base context.
     """
-    def __init__(self, base_file, **context):
+    def __init__(self, base_file, backends=None, **context):
         self.base_file = base_file
         self.context = context
 
         self.cache = {}
         self.paths =  []
 
-        self.load()
+        self.load(backends or [YAMLBackend, JSONBackend])
 
-    def load(self):
+    def load(self, backends):
         """
-        Attempts to fully load a Hiera base configuration. This must be called before
-        attempting to lookup values.
+        This function loads the base Hiera configuration, attempting to parse and
+        build state based on it. This will raise exceptions if the loading process
+        fails due to invalid configuration.
         """
-        self.base = yaml_load_ordered(open(self.base_file))
-        self.backend = self.base[':backends'][0]
-        self.data_dir = os.path.join(os.path.dirname(self.base_file), self.base[':' + self.backend][':datadir'])
+
+        # If we don't have a file-like object, attempt to open as a file path
+        if not hasattr(self.base_file, 'read'):
+            self.base_path = os.path.dirname(self.base_file)
+            self.base_file = open(self.base_file)
+        else:
+            self.base_path = os.getcwd()
+
+        # Load our base YAML configuration
+        self.base = YAMLBackend.load_ordered(self.base_file)
+
+        if not self.base:
+            raise Exception("Failed to parse base Hiera configuration")
+
+        # Load all backends
+        self.backends = {}
+        for backend in self.base[':backends']:
+            obj = filter(lambda i: i.NAME == backend, backends)
+            if not len(obj):
+                raise Exception("Invalid Backend: `{}`".format(backend))
+            self.backends[backend] = obj[0](self, self.base.get(":{}".format(backend)))
+
+        # Make sure we have at least a single backend
+        if not len(self.backends):
+            raise Exception("No backends could be loaded")
+
+        # self.data_dir = os.path.join(os.path.dirname(self.base_file), self.base[':' + self.backend][':datadir'])
         self.hierarchy = []
+
+        if not ':hierarchy' in self.base:
+            raise Exception("Invalid Base Hiera Config: missing hierarchy key")
 
         # Load our heirarchy
         for path in self.base[':hierarchy']:
@@ -52,41 +72,52 @@ class Hiera(object):
         #  in the constructor, we'll also load those files into the cache.
         self.get(None)
 
-    def load_directory(self, path):
+    def load_directory(self, path, backend=None):
         """
-        Attempts to load all yaml files in a directory
+        Walks an entire directory and attempts to load all relevant data files
+        based on our backends. Optionally can only load for one backend.
         """
-        result = []
         for root, dirs, files in os.walk(path):
             for f in files:
-                if f.endswith(".yaml"):
-                    result.append(self.load_file(os.path.join(root, f)))
-        return result
+                backend = backend or self.backends.get(':{}'.format(os.path.splitext(f)[-1]))
+                if backend:
+                    yield self.load_file(os.path.join(root, f), backend)
 
-    def load_file(self, path, ignore_cache=False):
+    def load_file(self, path, backend, ignore_cache=False):
         """
-        Attempts to load a single yaml file
+        Attempts to load a file for a specific backend, caching the result.
         """
         if path not in self.cache or ignore_cache:
-            self.cache[path] = yaml_load_ordered(open(path).read().decode('utf8'))
+            try:
+                self.cache[path] = backend.load(open(path).read().decode('utf8'))
+            except Exception as e:
+                raise Exception("Failed to load file {}: `{}`".format(path, e))
         return path
+
+    def can_resolve(self, s):
+        """
+        Returns true if any resolving or interpolation can be done on the provided
+        string
+        """
+        if isinstance(s, str) and (lookup.findall(s) or resolve.findall(s)):
+            return True
+        return False
 
     def resolve_function(self, s, paths, context):
         """
-        Fully resolve a hiera function call.
-
-        hiera = string interpolation
-        alias = direct alias
-        scope = scope argument
+        Attempts to fully resolve a hiera function call within a value. This includes
+        interpolation for relevant calls.
         """
-        function_calls = lookup.findall(s)
-
+        calls = lookup.findall(s)
+        
         # If this is an alias, just replace it (doesn't require interpolation)
-        if len(function_calls) == 1 and function_calls[0][0] == 'alias':
-            return self.get_key(function_calls[0][1], paths, context)
+        if len(calls) == 1 and calls[0][0] == 'alias':
+            if lookup.sub("", s) != "":
+                raise Exception("Alias can not be used for string interpolation: `{}`".format(s))
+            return self.get_key(calls[0][1], paths, context)
 
-        # Iterate over all function calls and string interpolate their resolved values 
-        for call, arg in function_calls:
+        # Iterate over all function calls and string interpolate their resolved values
+        for call, arg in calls:
             if call == 'hiera':
                 replace = self.get_key(arg, paths, context)
             elif call == 'scope':
@@ -95,40 +126,67 @@ class Hiera(object):
                 replace = arg
             elif call == 'alias':
                 raise Exception("Invalid alias function call: `{}`".format(s))
-            
+
             if not replace:
                 raise Exception("Could not resolve value for function call: `{}`".format(s))
 
+            if not isinstance(replace, str):
+                raise Exception("Resolved value is not a string for function call: `{}`".format(s))
+
             # Replace only the current function call with our resolved value
             s = lookup.sub(replace, s, 1)
+        
+        return s
+
+    def resolve_interpolates(self, s, context):
+        """
+        Attempts to resolve context-based string interpolation
+        """
+        interps = resolve.findall(s)
+
+        for i in interps:
+            s = resolve.sub(context.get(i), s, 1)
 
         return s
 
+    def resolve(self, s, paths, context):
+        """
+        Fully resolves a string, including function and interpolation based resolving.
+        """
+        base = self.resolve_function(s, paths, context)
+
+        # If we can string interpolate the result, lets do that
+        if isinstance(base, str):
+            base = self.resolve_interpolates(base, context)
+
+        return base
+
     def resolve_dict(self, obj, paths, context):
         """
-        Fully resolve hiera function calls within a dictionary
+        Recursively and completely resolves all Hiera interoplates/functions
+        within a dictionary.
         """
         new_obj = OrderedDict()
         for k, v in obj.iteritems():
             if isinstance(v, dict):
                 new_obj[k] = self.resolve_dict(v, paths, context)
-            elif isinstance(v, str) and lookup.findall(v):
-                new_obj[k] = self.resolve_function(v, paths, context)
+            elif self.can_resolve(v):
+                new_obj[k] = self.resolve(v, paths, context)
             else:
                 new_obj[k] = v
         return new_obj
 
     def get_key(self, key, paths, context):
         """
-        Get the value of a key within hiera
+        Get the value of a key within hiera, resolving if required
         """
         for path in paths:
             if key in self.cache[path]:
                 value = self.cache[path][key]
 
-                if isinstance(value, str) and lookup.findall(value):
+                if self.can_resolve(value):
                     # If we're a hiera function call, lets resolve ourselves
-                    return self.resolve_function(value, paths, context)
+                    return self.resolve(value, paths, context)
                 elif isinstance(value, dict):
                     # If we're a dict, we need to resolve internal function calls
                     return self.resolve_dict(value, paths, context)
@@ -145,20 +203,21 @@ class Hiera(object):
         """
         ctx = self.context.copy()
         ctx.update(kwargs)
+        ctx = {k: v for k, v in ctx.items() if v}
 
         # First, we need to resolve a list of valid paths, in order and load them
         paths = []
-        for h in self.hierarchy:
-            try:
-                path = os.path.join(self.data_dir, h.format(**ctx))
-            except KeyError:
-                continue
 
-            if os.path.isdir(path):
-                paths += self.load_directory(path)
-            else:
-                if os.path.exists(path + '.yaml'):
-                    paths.append(self.load_file(path + '.yaml'))
+        for backend in self.backends.values():
+            for path in self.hierarchy:
+                try:
+                    path = os.path.join(backend.datadir, path.format(**ctx))
+                except KeyError: continue
+
+                if os.path.isdir(path):
+                    paths += list(self.load_directory(path, backend))
+                elif os.path.exists(path +  '.' + backend.NAME):
+                    paths.append(self.load_file(path + '.' + backend.NAME, backend))
 
         # Locate the value, or fail and return the default
         return self.get_key(key, paths, ctx) or default

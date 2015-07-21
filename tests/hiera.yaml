@@ -1,0 +1,17 @@
+---
+:backends:
+  - yaml
+  - json
+
+:hierarchy:
+  - "level1/common"
+  - "level1/%{name}"
+  - "level2/common"
+  - "level2/%{name}"
+  - "level3/%{name}"
+
+:yaml:
+  :datadir: data
+
+:json:
+  :datadir: data

@@ -1,0 +1,12 @@
+test_basic_get: "test_basic_get_works"
+test_hierarchy_get: "test_hierarchy_get_level1"
+
+test_alias_real: "test_alias_works"
+test_alias: "%{alias('test_alias_real')}"
+test_alias_invalid: "INVALID ALIAS HERE %{alias('test_alias_real')}"
+
+test_complex_alias_real:
+  key1: value1
+  key2: value2
+test_complex_alias: "%{alias('test_complex_alias_real')}"
+
