@@ -43,7 +43,7 @@ class Hiera(object):
         self.backend = self.base[':backends'][0]
         self.data_dir = os.path.join(os.path.dirname(self.base_file), self.base[':' + self.backend][':datadir'])
         self.hierarchy = []
-       
+
         # Load our heirarchy
         for path in self.base[':hierarchy']:
             self.hierarchy.append(re.sub("%{([a-zA-Z_-|\d]+)}", "{\g<1>}", path, count=0))
@@ -73,16 +73,36 @@ class Hiera(object):
 
     def resolve_function(self, s, paths, context):
         """
-        Fully resolve a hiera function call
-        """
-        opt, arg = lookup.findall(s)[0]
+        Fully resolve a hiera function call.
 
-        if opt == 'hiera':
-            return self.get_key(arg, paths, context)
-        elif opt == 'scope':
-            return context.get(arg)
-        else:
-            raise Exception("Unsupported hiera function: %s" % opts[0][0])
+        hiera = string interpolation
+        alias = direct alias
+        scope = scope argument
+        """
+        function_calls = lookup.findall(s)
+
+        # If this is an alias, just replace it (doesn't require interpolation)
+        if len(function_calls) == 1 and function_calls[0][0] == 'alias':
+            return self.get_key(function_calls[0][1], paths, context)
+
+        # Iterate over all function calls and string interpolate their resolved values 
+        for call, arg in function_calls:
+            if call == 'hiera':
+                replace = self.get_key(arg, paths, context)
+            elif call == 'scope':
+                replace = context.get(arg)
+            elif call == 'literal':
+                replace = arg
+            elif call == 'alias':
+                raise Exception("Invalid alias function call: `{}`".format(s))
+            
+            if not replace:
+                raise Exception("Could not resolve value for function call: `{}`".format(s))
+
+            # Replace only the current function call with our resolved value
+            s = lookup.sub(replace, s, 1)
+
+        return s
 
     def resolve_dict(self, obj, paths, context):
         """
@@ -92,7 +112,7 @@ class Hiera(object):
         for k, v in obj.iteritems():
             if isinstance(v, dict):
                 new_obj[k] = self.resolve_dict(v, paths, context)
-            elif isinstance(v, str) and lookup.match(v):
+            elif isinstance(v, str) and lookup.findall(v):
                 new_obj[k] = self.resolve_function(v, paths, context)
             else:
                 new_obj[k] = v
@@ -105,8 +125,8 @@ class Hiera(object):
         for path in paths:
             if key in self.cache[path]:
                 value = self.cache[path][key]
-                
-                if isinstance(value, str) and lookup.match(value):
+
+                if isinstance(value, str) and lookup.findall(value):
                     # If we're a hiera function call, lets resolve ourselves
                     return self.resolve_function(value, paths, context)
                 elif isinstance(value, dict):
@@ -139,7 +159,7 @@ class Hiera(object):
             else:
                 if os.path.exists(path + '.yaml'):
                     paths.append(self.load_file(path + '.yaml'))
-        
+
         # Locate the value, or fail and return the default
         return self.get_key(key, paths, ctx) or default
 
