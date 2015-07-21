@@ -32,7 +32,7 @@ setup(
     author_email='andrei.zbikowski@gmail.com',
     url='http://github.com/b1naryth1ef/piera',
     packages=packages,
-    package_data={},
+    package_data={"": ["README.md"]},
     package_dir={'piera': 'piera'},
     include_package_data=True,
     install_requires=requires,

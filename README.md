@@ -4,11 +4,25 @@ Piera is a lightweight, pure-Python [Hiera](http://docs.puppetlabs.com/hiera/) p
 ## Why?
 Piera was built at [Braintree](http://github.com/braintree) to help us bridge a gap of emerging Python system scripts, and a historical storage of Puppet/Hiera data.
 
+## Install It
+
+### PyPi
+`pip install piera`
+
+### Manual
+```bash
+git clone git@github.com:b1naryth1ef/piera.git
+cd piera
+python setup.py install
+```
+
 ## Usage
 ```python
 import piera
 
 h = piera.Hiera("my_hiera.yaml")
+
+# You can use piera to simply interact with your structured Hiera data
 
 # key: 'value'
 assert h.get("key") == "value"
@@ -18,4 +32,7 @@ assert h.get("key_alias") == "value"
 
 # key_hiera: 'OHAI %{hiera('key_alias')}'
 assert h.get("key_hiera") == "OHAI value"
+
+# Give piera context
+assert h.get("my_context_based_key", name='test01', environment='qa') == "context is great!"
 ```
