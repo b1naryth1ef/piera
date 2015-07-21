@@ -2,7 +2,7 @@
 Piera is a lightweight, pure-Python [Hiera](http://docs.puppetlabs.com/hiera/) parser. It was built to help bridge the gap between Puppet/Hiera and Python system scripts. Piera is currently not feature complete, lacking some less-used interoplation and loading features (feel free to contribute!)
 
 ## Why?
-Piera was built at [Braintree](github.com/braintree) to help us bridge a gap of emerging Python system scripts, and a historical storage of Puppet/Hiera data.
+Piera was built at [Braintree](http://github.com/braintree) to help us bridge a gap of emerging Python system scripts, and a historical storage of Puppet/Hiera data.
 
 ## Usage
 ```python
