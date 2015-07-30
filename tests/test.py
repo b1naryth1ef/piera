@@ -8,7 +8,11 @@ except ImportError:
 
 class BaseTestPiera(unittest.TestCase):
     def setUp(self):
+        self.base = os.getcwd()
         self.hiera = piera.Hiera('hiera.yaml', name='test')
+
+    def tearDown(self):
+        os.chdir(self.base)
 
 class TestPieraConfig(unittest.TestCase):
     def test_load_empty_config(self):
@@ -48,6 +52,12 @@ class TestPieraConfig(unittest.TestCase):
         h = piera.Hiera(obj)
 
 class TestPiera(BaseTestPiera):
+    def test_different_path(self):
+        os.chdir("/tmp")
+        hiera = piera.Hiera(os.path.join(self.base, 'hiera.yaml'), name='test')
+        self.assertEquals(hiera.get('test_basic_get'), 'test_basic_get_works')
+        self.assertEquals(hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
+
     def test_get(self):
         self.assertEquals(self.hiera.get('test_basic_get'), 'test_basic_get_works')
         self.assertEquals(self.hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')

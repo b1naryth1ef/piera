@@ -210,7 +210,7 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(backend.datadir, path.format(**ctx))
+                    path = os.path.join(self.base_path, backend.datadir, path.format(**ctx))
                 except KeyError: continue
 
                 if os.path.isdir(path):
