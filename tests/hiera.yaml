@@ -9,6 +9,7 @@
   - "level2/common"
   - "level2/%{name}"
   - "level3/%{name}"
+  - "level4/%{name}"
 
 :yaml:
   :datadir: data

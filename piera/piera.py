@@ -180,7 +180,7 @@ class Hiera(object):
         Get the value of a key within hiera, resolving if required
         """
         for path in paths:
-            if key in self.cache[path]:
+            if self.cache[path] is not None and key in self.cache[path]:
                 value = self.cache[path][key]
 
                 if self.can_resolve(value):
