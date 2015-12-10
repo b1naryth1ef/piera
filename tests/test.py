@@ -40,7 +40,7 @@ class TestPieraConfig(unittest.TestCase):
             h = piera.Hiera(obj)
 
     def test_valid_config(self):
-        obj  =StringIO.StringIO("""
+        obj = StringIO.StringIO("""
             :backends:
                 - yaml
             :hierarchy:
@@ -85,8 +85,24 @@ class TestPiera(BaseTestPiera):
     def test_interpolate(self):
         self.assertEquals(self.hiera.get('test_interpolate'), 'this is interpolated: test')
 
-    def test_handles_empty_hash(self):
+    def test_falsey_values(self):
         self.assertEquals(self.hiera.get('test_empty_hash'), {})
+        self.assertEquals(self.hiera.get('test_empty_list'), [])
+        self.assertEquals(self.hiera.get('test_false_value'), False)
+        self.assertEquals(self.hiera.get('test_null_value'), None)
+        self.assertEquals(self.hiera.get('test_missing_value'), None)
+
+    def test_default_value(self):
+        self.assertEquals(self.hiera.get('nope', default=42), 42)
+        self.assertEquals(self.hiera.get('test_literal', default=42), 'hi')
+
+    def test_throw_keyerror(self):
+        with self.assertRaises(KeyError):
+            self.hiera.get('nope', throw=True)
+
+    def test_has(self):
+        self.assertTrue(self.hiera.has('test_complex_alias'))
+        self.assertFalse(self.hiera.has('nope'))
 
 if __name__ == "__main__":
     base = os.getcwd()

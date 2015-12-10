@@ -194,12 +194,24 @@ class Hiera(object):
 
         raise KeyError(key)
 
-    def get(self, key, default=None, **kwargs):
+    def has(self, key, **kwargs):
+        """
+        Returns true if the key exists in hiera, false otherwise
+        """
+        try:
+            self.get(key, throw=True, **kwargs)
+            return True
+        except KeyError:
+            return False
+
+    def get(self, key, default=None, throw=False, **kwargs):
         """
         Attempts to retrieve a hiera variable by fully resolving its location.
 
         :param key: They Hiera key to retrieve
         :param default: If the Hiera key is not found, return this value
+        :param throw: If true, will ignore default and throw KeyError on a missing
+            key.
         :param kwargs: Any kwargs passed will override context-variables.
         """
         ctx = self.context.copy()
@@ -224,5 +236,7 @@ class Hiera(object):
         try:
             return self.get_key(key, paths, ctx)
         except KeyError:
+            if throw:
+                raise
             return default
 

@@ -4,3 +4,6 @@ test_scope: "%{scope('name')}"
 test_interpolate: 'this is interpolated: %{name}'
 
 test_empty_hash: {}
+test_empty_list: []
+test_false_value: false
+test_null_value: null
