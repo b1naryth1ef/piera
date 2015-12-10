@@ -192,7 +192,7 @@ class Hiera(object):
                 else:
                     return value
 
-        raise KeyError('No value found in the cache')
+        raise KeyError(key)
 
     def get(self, key, default=None, **kwargs):
         """
