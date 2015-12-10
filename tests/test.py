@@ -85,6 +85,9 @@ class TestPiera(BaseTestPiera):
     def test_interpolate(self):
         self.assertEquals(self.hiera.get('test_interpolate'), 'this is interpolated: test')
 
+    def test_handles_empty_hash(self):
+        self.assertEquals(self.hiera.get('test_empty_hash'), {})
+
 if __name__ == "__main__":
     base = os.getcwd()
     os.chdir(os.path.dirname(os.path.realpath(__file__)))

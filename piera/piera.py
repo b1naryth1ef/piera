@@ -192,6 +192,8 @@ class Hiera(object):
                 else:
                     return value
 
+        raise KeyError('No value found in the cache')
+
     def get(self, key, default=None, **kwargs):
         """
         Attempts to retrieve a hiera variable by fully resolving its location.
@@ -219,5 +221,8 @@ class Hiera(object):
                     paths.append(self.load_file(path + '.' + backend.NAME, backend))
 
         # Locate the value, or fail and return the default
-        return self.get_key(key, paths, ctx) or default
+        try:
+            return self.get_key(key, paths, ctx)
+        except KeyError:
+            return default
 

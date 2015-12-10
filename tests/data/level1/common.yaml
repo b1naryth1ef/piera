@@ -2,3 +2,5 @@ test_literal: "%{literal('hi')}"
 test_scope: "%{scope('name')}"
 
 test_interpolate: 'this is interpolated: %{name}'
+
+test_empty_hash: {}
