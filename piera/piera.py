@@ -67,6 +67,9 @@ class Hiera(object):
         for path in self.base[':hierarchy']:
             self.hierarchy.append(re.sub("%{([a-zA-Z_-|\d]+)}", "{\g<1>}", path, count=0))
 
+        for backend in self.backends.values():
+            backend.datadir = re.sub("%{([a-zA-Z_-|\d]+)}", "{\g<1>}", backend.datadir, count=0)
+
         # Now pre-load/cache a bunch of global stuff. If context vars where provided
         #  in the constructor, we'll also load those files into the cache.
         self.get(None)
@@ -224,7 +227,7 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(self.base_path, backend.datadir, path.format(**ctx))
+                    path = os.path.join(self.base_path, backend.datadir.format(**ctx), path.format(**ctx))
                 except KeyError: continue
 
                 if os.path.isdir(path):
