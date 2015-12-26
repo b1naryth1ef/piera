@@ -5,7 +5,7 @@
 
 :hierarchy:
   - "level1/common"
-  - "level1/%{name}"
+  - "level1/%{::name}"
   - "level2/common"
   - "level2/%{name}"
   - "level3/%{name}"

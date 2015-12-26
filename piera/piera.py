@@ -5,6 +5,7 @@ from .backends import YAMLBackend, JSONBackend
 
 function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"]([^"']*)["']\)\}''')
 interpolate = re.compile(r'''%\{([^\}]*)\}''')
+rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
 
 class Hiera(object):
     """
@@ -68,10 +69,11 @@ class Hiera(object):
 
         # Load our heirarchy
         for path in self.base[':hierarchy']:
-            self.hierarchy.append(re.sub("%{([a-zA-Z_-|\d]+)}", "{\g<1>}", path, count=0))
+            self.hierarchy.append(rformat.sub("{\g<1>}", path, count=0))
 
+        # Load our backends
         for backend in self.backends.values():
-            backend.datadir = re.sub("%{([a-zA-Z_-|\d]+)}", "{\g<1>}", backend.datadir, count=0)
+            backend.datadir = rformat.sub("{\g<1>}", backend.datadir, count=0)
 
         # Now pre-load/cache a bunch of global stuff. If context vars where provided
         #  in the constructor, we'll also load those files into the cache.
@@ -234,7 +236,7 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(self.base_path, backend.datadir.format(**context), path.format(**contextn))
+                    path = os.path.join(self.base_path, backend.datadir.format(**context), path.format(**context))
                 except KeyError: continue
 
                 if os.path.isdir(path):
