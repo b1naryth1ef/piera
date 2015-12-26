@@ -1,4 +1,4 @@
-__VERSION__ = "1.0.0-rc.7"
+__VERSION__ = "1.0.0-rc.8"
 
 from .piera import *
 
