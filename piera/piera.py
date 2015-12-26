@@ -15,11 +15,14 @@ class Hiera(object):
     :param base_file: The Hiera base configuration file path or file-like object
     :param backends: A list of backends to use for loading, by default this is
         YAMLBackend and JSONBackend
-    :param context: Any additional kwargs will be passed in as a base context.
+    :param context: Any dictionary of format/context variables to default for the
+        liftime of this instance.
+    :param kwargs: Any additional kwargs will be added to the context
     """
-    def __init__(self, base_file, backends=None, **context):
+    def __init__(self, base_file, backends=None, context={}, **kwargs):
         self.base_file = base_file
         self.context = context
+        self.context.update(kwargs)
 
         self.cache = {}
         self.paths =  []
@@ -111,7 +114,7 @@ class Hiera(object):
         interpolation for relevant calls.
         """
         calls = function.findall(s)
-        
+
         # If this is an alias, just replace it (doesn't require interpolation)
         if len(calls) == 1 and calls[0][0] == 'alias':
             if function.sub("", s) != "":
@@ -137,7 +140,7 @@ class Hiera(object):
 
             # Replace only the current function call with our resolved value
             s = function.sub(replace, s, 1)
-        
+
         return s
 
     def resolve_interpolates(self, s, context):
@@ -207,7 +210,7 @@ class Hiera(object):
         except KeyError:
             return False
 
-    def get(self, key, default=None, throw=False, **kwargs):
+    def get(self, key, default=None, throw=False, context={}, **kwargs):
         """
         Attempts to retrieve a hiera variable by fully resolving its location.
 
@@ -215,11 +218,15 @@ class Hiera(object):
         :param default: If the Hiera key is not found, return this value
         :param throw: If true, will ignore default and throw KeyError on a missing
             key.
+        :param context: A dictionary of key-value pairs to be passed in as context
+            variables.
         :param kwargs: Any kwargs passed will override context-variables.
         """
-        ctx = self.context.copy()
-        ctx.update(kwargs)
-        ctx = {k: v for k, v in ctx.items() if v}
+        context.update(self.context)
+        context.update(kwargs)
+
+        # Filter None values
+        context = {k: v for k, v in context.items() if v}
 
         # First, we need to resolve a list of valid paths, in order and load them
         paths = []
@@ -227,7 +234,7 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(self.base_path, backend.datadir.format(**ctx), path.format(**ctx))
+                    path = os.path.join(self.base_path, backend.datadir.format(**context), path.format(**contextn))
                 except KeyError: continue
 
                 if os.path.isdir(path):
@@ -237,7 +244,7 @@ class Hiera(object):
 
         # Locate the value, or fail and return the default
         try:
-            return self.get_key(key, paths, ctx)
+            return self.get_key(key, paths, context)
         except KeyError:
             if throw:
                 raise
