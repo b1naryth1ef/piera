@@ -15,7 +15,7 @@ class Backend(object):
         self.datadir = self.obj.get(":datadir", "/etc/puppetlabs/code/environments/%{environment}/hieradata")
 
     def load(self, data):
-        raise NotImplementtedError("Subclasses must implement .load")
+        raise NotImplementedError("Subclasses must implement .load")
 
 class YAMLBackend(Backend):
     NAME = 'yaml'
