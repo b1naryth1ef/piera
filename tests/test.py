@@ -6,10 +6,13 @@ try:
 except ImportError:
     import io as StringIO
 
+current_dirname, _ = os.path.split(os.path.abspath(__file__))
+
 class BaseTestPiera(unittest.TestCase):
     def setUp(self):
-        self.base = os.getcwd()
-        self.hiera = piera.Hiera('hiera.yaml', name='test')
+        self.base = current_dirname
+        self.hiera = piera.Hiera(os.path.join(current_dirname, 'hiera.yaml'),
+                                 name='test')
 
     def tearDown(self):
         os.chdir(self.base)
