@@ -38,6 +38,7 @@ setup(
     install_requires=requires,
     license='Apache 2.0',
     zip_safe=False,
+    test_suite='tests',
     classifiers=(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
