@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 from .backends import YAMLBackend, JSONBackend
 
-function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"]([^"']*)["']\)\}''')
-interpolate = re.compile(r'''%\{([^\}]*)\}''')
+function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"](?:::|)([^"']*)["']\)\}''')
+interpolate = re.compile(r'''%\{(?:::|)([^\}]*)\}''')
 rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
 
 class Hiera(object):
