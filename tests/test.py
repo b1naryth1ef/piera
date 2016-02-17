@@ -81,9 +81,11 @@ class TestPiera(BaseTestPiera):
         # Test Scope
         self.assertEquals(self.hiera.get('test_scope'), 'test')
         self.assertEquals(self.hiera.get('test_scope', name='wat'), 'wat')
+        self.assertEquals(self.hiera.get('test_scope_ns', name='wat'), 'wat')
 
     def test_interpolate(self):
         self.assertEquals(self.hiera.get('test_interpolate'), 'this is interpolated: test')
+        self.assertEquals(self.hiera.get('test_interpolate_ns'), 'this is interpolated: test')
 
     def test_falsey_values(self):
         self.assertEquals(self.hiera.get('test_empty_hash'), {})

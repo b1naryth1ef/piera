@@ -1,7 +1,9 @@
 test_literal: "%{literal('hi')}"
 test_scope: "%{scope('name')}"
+test_scope_ns: "%{scope('::name')}"
 
 test_interpolate: 'this is interpolated: %{name}'
+test_interpolate_ns: 'this is interpolated: %{::name}'
 
 test_empty_hash: {}
 test_empty_list: []
