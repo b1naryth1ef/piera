@@ -7,6 +7,27 @@ function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"](?:::|)([^"']*)["'
 interpolate = re.compile(r'''%\{(?:::|)([^\}]*)\}''')
 rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
 
+class ScopedHiera(object):
+    def __init__(self, hiera, context={}):
+        self.hiera = hiera
+        self.context = context
+
+    def has(self, key, **kwargs):
+        kwargs.update(self.context)
+        return self.hiera.has(key, **kwargs)
+
+    def get(self, key, default=None, throw=False, context={}, **kwargs):
+        new_context = {}
+        new_context.update(self.context)
+        new_context.update(context)
+        new_context.update(kwargs)
+        return self.hiera.get(key, default, throw, new_context)
+
+    def __getattr__(self, name):
+        if hasattr(self.hiera, name):
+            return getattr(self.hiera, name)
+        raise AttributeError
+
 class Hiera(object):
     """
     The Hiera object represents a first-class interaction between Python and
@@ -201,6 +222,10 @@ class Hiera(object):
                     return value
 
         raise KeyError(key)
+
+    def scoped(self, context={}, **kwargs):
+        context.update(kwargs)
+        return ScopedHiera(self, context)
 
     def has(self, key, **kwargs):
         """

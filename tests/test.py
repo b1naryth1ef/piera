@@ -77,7 +77,7 @@ class TestPiera(BaseTestPiera):
         obj = self.hiera.get('test_complex_alias')
         self.assertTrue(isinstance(obj, dict))
         self.assertEquals(obj['key1'], 'value1')
-        
+
         # Test Literal
         self.assertEquals(self.hiera.get('test_literal'), 'hi')
 
@@ -112,6 +112,18 @@ class TestPiera(BaseTestPiera):
     def test_has(self):
         self.assertTrue(self.hiera.has('test_complex_alias'))
         self.assertFalse(self.hiera.has('nope'))
+
+    def test_rescope(self):
+        hiera = self.hiera.scoped(name='wat')
+        self.assertEquals(hiera.get('test_scope'), 'wat')
+        self.assertEquals(hiera.get('test_scope_ns'), 'wat')
+        self.assertEquals(hiera.get('test_scope_ns', name='test'), 'test')
+
+        # Make sure we can still access the base hiera stuff
+        self.assertEquals(hiera.base_file, self.hiera.base_file)
+
+        with self.assertRaises(AttributeError):
+            hiera.magical_nonexistant_thing()
 
 if __name__ == "__main__":
     base = os.getcwd()
