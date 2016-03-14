@@ -224,11 +224,13 @@ class Hiera(object):
             variables.
         :param kwargs: Any kwargs passed will override context-variables.
         """
-        context.update(self.context)
-        context.update(kwargs)
+        new_context = {}
+        new_context.update(self.context)
+        new_context.update(context)
+        new_context.update(kwargs)
 
         # Filter None values
-        context = {k: v for k, v in context.items() if v}
+        new_context = {k: v for k, v in new_context.items() if v}
 
         # First, we need to resolve a list of valid paths, in order and load them
         paths = []
@@ -236,7 +238,7 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(self.base_path, backend.datadir.format(**context), path.format(**context))
+                    path = os.path.join(self.base_path, backend.datadir.format(**new_context), path.format(**new_context))
                 except KeyError: continue
 
                 if os.path.isdir(path):
@@ -246,7 +248,7 @@ class Hiera(object):
 
         # Locate the value, or fail and return the default
         try:
-            return self.get_key(key, paths, context)
+            return self.get_key(key, paths, new_context)
         except KeyError:
             if throw:
                 raise

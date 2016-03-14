@@ -86,6 +86,10 @@ class TestPiera(BaseTestPiera):
         self.assertEquals(self.hiera.get('test_scope', name='wat'), 'wat')
         self.assertEquals(self.hiera.get('test_scope_ns', name='wat'), 'wat')
 
+    def test_raw_context(self):
+        self.assertEquals(self.hiera.get('test_scope_ns', context={'name': 'wat'}), 'wat')
+        self.assertEquals(self.hiera.get('test_scope_ns', context={'name': 'wat'}, name='test'), 'test')
+
     def test_interpolate(self):
         self.assertEquals(self.hiera.get('test_interpolate'), 'this is interpolated: test')
         self.assertEquals(self.hiera.get('test_interpolate_ns'), 'this is interpolated: test')
