@@ -7,6 +7,7 @@ function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"](?:::|)([^"']*)["'
 interpolate = re.compile(r'''%\{(?:::|)([^\}]*)\}''')
 rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
 
+
 class ScopedHiera(object):
     def __init__(self, hiera, context={}):
         self.hiera = hiera
@@ -28,6 +29,7 @@ class ScopedHiera(object):
             return getattr(self.hiera, name)
         raise AttributeError
 
+
 class Hiera(object):
     """
     The Hiera object represents a first-class interaction between Python and
@@ -47,7 +49,7 @@ class Hiera(object):
         self.context.update(kwargs)
 
         self.cache = {}
-        self.paths =  []
+        self.paths = []
 
         self.load(backends or [YAMLBackend, JSONBackend])
 
@@ -85,7 +87,7 @@ class Hiera(object):
 
         self.hierarchy = []
 
-        if not ':hierarchy' in self.base:
+        if ':hierarchy' not in self.base:
             raise Exception("Invalid Base Hiera Config: missing hierarchy key")
 
         # Load our heirarchy
@@ -264,11 +266,12 @@ class Hiera(object):
             for path in self.hierarchy:
                 try:
                     path = os.path.join(self.base_path, backend.datadir.format(**new_context), path.format(**new_context))
-                except KeyError: continue
+                except KeyError:
+                    continue
 
                 if os.path.isdir(path):
                     paths += list(self.load_directory(path, backend))
-                elif os.path.exists(path +  '.' + backend.NAME):
+                elif os.path.exists(path + '.' + backend.NAME):
                     paths.append(self.load_file(path + '.' + backend.NAME, backend))
 
         # Locate the value, or fail and return the default
@@ -278,4 +281,3 @@ class Hiera(object):
             if throw:
                 raise
             return default
-
