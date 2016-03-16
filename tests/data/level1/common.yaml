@@ -5,7 +5,32 @@ test_scope_ns: "%{scope('::name')}"
 test_interpolate: 'this is interpolated: %{name}'
 test_interpolate_ns: 'this is interpolated: %{::name}'
 
+test_invalid_function: "%{invalid('123')}"
+
 test_empty_hash: {}
 test_empty_list: []
 test_false_value: false
 test_null_value: null
+
+test_resolve_hash:
+  a: "%{hiera('test_scope')}"
+  b: 1
+  c: "%{hiera('test_literal')}"
+
+test_resolve_array:
+  - "%{hiera('test_scope')}"
+  - 1
+  - "%{hiera('test_literal')}"
+
+test_override: a
+test_basic_merge: b
+test_array_merge_a: c
+test_array_merge_b:
+  - c
+  - d
+test_hash_merge_a:
+  a: 2
+  b: 2
+test_hash_merge_b:
+  a: 2
+  b: 2

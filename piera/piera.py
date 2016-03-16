@@ -8,6 +8,32 @@ interpolate = re.compile(r'''%\{(?:::|)([^\}]*)\}''')
 rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
 
 
+class Merge(object):
+    def __init__(self, typ, deep=False):
+        self.typ = typ
+        self.deep = deep
+
+        if typ == dict:
+            self.value = OrderedDict()
+        else:
+            self.value = typ()
+
+        if deep:
+            raise Exception("Deep merging isn't supported yet!")
+
+    def merge_value(self, value):
+        if isinstance(self.value, list):
+            self.value += list(value)
+        elif isinstance(self.value, set):
+            self.value = self.value | set(value)
+        elif isinstance(self.value, dict):
+            for k, v in value.iteritems():
+                if k not in self.value:
+                    self.value[k] = v
+        else:
+            raise TypeError("Cannot handle merge_value of type %s", type(self.value))
+
+
 class ScopedHiera(object):
     def __init__(self, hiera, context={}):
         self.hiera = hiera
@@ -17,12 +43,12 @@ class ScopedHiera(object):
         kwargs.update(self.context)
         return self.hiera.has(key, **kwargs)
 
-    def get(self, key, default=None, throw=False, context={}, **kwargs):
+    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context={}, **kwargs):
         new_context = {}
         new_context.update(self.context)
         new_context.update(context)
         new_context.update(kwargs)
-        return self.hiera.get(key, default, throw, new_context)
+        return self.hiera.get(key, default, merge, merge_deep, throw, new_context)
 
     def __getattr__(self, name):
         if hasattr(self.hiera, name):
@@ -129,11 +155,11 @@ class Hiera(object):
         Returns true if any resolving or interpolation can be done on the provided
         string
         """
-        if isinstance(s, str) and (function.findall(s) or interpolate.findall(s)):
+        if (isinstance(s, str) or isinstance(s, unicode)) and (function.findall(s) or interpolate.findall(s)):
             return True
         return False
 
-    def resolve_function(self, s, paths, context):
+    def resolve_function(self, s, paths, context, merge):
         """
         Attempts to fully resolve a hiera function call within a value. This includes
         interpolation for relevant calls.
@@ -144,12 +170,12 @@ class Hiera(object):
         if len(calls) == 1 and calls[0][0] == 'alias':
             if function.sub("", s) != "":
                 raise Exception("Alias can not be used for string interpolation: `{}`".format(s))
-            return self.get_key(calls[0][1], paths, context)
+            return self.get_key(calls[0][1], paths, context, merge)
 
         # Iterate over all function calls and string interpolate their resolved values
         for call, arg in calls:
             if call == 'hiera':
-                replace = self.get_key(arg, paths, context)
+                replace = self.get_key(arg, paths, context, merge)
             elif call == 'scope':
                 replace = context.get(arg)
             elif call == 'literal':
@@ -179,11 +205,18 @@ class Hiera(object):
 
         return s
 
-    def resolve(self, s, paths, context):
+    def resolve(self, s, paths, context, merge):
         """
-        Fully resolves a string, including function and interpolation based resolving.
+        Fully resolves an object, including function and interpolation based resolving.
         """
-        base = self.resolve_function(s, paths, context)
+        if isinstance(s, dict):
+            return self.resolve_dict(s, paths, context, merge)
+        elif isinstance(s, list):
+            return list(self.resolve_list(s, paths, context, merge))
+        elif not self.can_resolve(s):
+            return s
+
+        base = self.resolve_function(s, paths, context, merge)
 
         # If we can string interpolate the result, lets do that
         if isinstance(base, str):
@@ -191,37 +224,35 @@ class Hiera(object):
 
         return base
 
-    def resolve_dict(self, obj, paths, context):
+    def resolve_dict(self, obj, paths, context, merge):
         """
         Recursively and completely resolves all Hiera interoplates/functions
         within a dictionary.
         """
         new_obj = OrderedDict()
         for k, v in obj.iteritems():
-            if isinstance(v, dict):
-                new_obj[k] = self.resolve_dict(v, paths, context)
-            elif self.can_resolve(v):
-                new_obj[k] = self.resolve(v, paths, context)
-            else:
-                new_obj[k] = v
+            new_obj[k] = self.resolve(v, paths, context, merge)
         return new_obj
 
-    def get_key(self, key, paths, context):
+    def resolve_list(self, obj, paths, context, merge):
+        for item in obj:
+            yield self.resolve(item, paths, context, merge)
+
+    def get_key(self, key, paths, context, merge):
         """
         Get the value of a key within hiera, resolving if required
         """
         for path in paths:
             if self.cache[path] is not None and key in self.cache[path]:
-                value = self.cache[path][key]
+                value = self.resolve(self.cache[path][key], paths, context, (merge if merge and merge.deep else merge))
 
-                if self.can_resolve(value):
-                    # If we're a hiera function call, lets resolve ourselves
-                    return self.resolve(value, paths, context)
-                elif isinstance(value, dict):
-                    # If we're a dict, we need to resolve internal function calls
-                    return self.resolve_dict(value, paths, context)
+                if merge:
+                    merge.merge_value(value)
                 else:
                     return value
+
+        if merge and merge.value:
+            return merge.value
 
         raise KeyError(key)
 
@@ -239,12 +270,14 @@ class Hiera(object):
         except KeyError:
             return False
 
-    def get(self, key, default=None, throw=False, context={}, **kwargs):
+    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context={}, **kwargs):
         """
         Attempts to retrieve a hiera variable by fully resolving its location.
 
         :param key: They Hiera key to retrieve
         :param default: If the Hiera key is not found, return this value
+        :param merge: If set to a list or dictionary, will perform a array or hash
+            merge accordingly.
         :param throw: If true, will ignore default and throw KeyError on a missing
             key.
         :param context: A dictionary of key-value pairs to be passed in as context
@@ -274,9 +307,12 @@ class Hiera(object):
                 elif os.path.exists(path + '.' + backend.NAME):
                     paths.append(self.load_file(path + '.' + backend.NAME, backend))
 
-        # Locate the value, or fail and return the default
+        if merge:
+            merge = Merge(merge, merge_deep)
+
+        # Locate the value, or fail and return the defaults
         try:
-            return self.get_key(key, paths, new_context)
+            return self.get_key(key, paths, new_context, merge=merge)
         except KeyError:
             if throw:
                 raise

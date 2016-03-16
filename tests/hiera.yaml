@@ -4,12 +4,12 @@
   - json
 
 :hierarchy:
-  - "level1/common"
   - "level1/%{::name}"
-  - "level2/common"
   - "level2/%{name}"
   - "level3/%{name}"
   - "level4/%{name}"
+  - "level1/common"
+  - "level2/common"
 
 :yaml:
   :datadir: data

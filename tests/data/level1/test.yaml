@@ -10,3 +10,16 @@ test_complex_alias_real:
   key2: value2
 test_complex_alias: "%{alias('test_complex_alias_real')}"
 
+test_override: b
+test_basic_merge: a
+test_array_merge_a:
+  - a
+  - b
+test_array_merge_b:
+  - a
+  - b
+test_hash_merge_a:
+  a: 1
+test_hash_merge_b:
+  a: 1
+  b: 1

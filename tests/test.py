@@ -1,4 +1,5 @@
-import unittest, os
+import os
+import unittest
 import piera
 
 try:
@@ -7,6 +8,7 @@ except ImportError:
     import io as StringIO
 
 current_dirname, _ = os.path.split(os.path.abspath(__file__))
+
 
 class BaseTestPiera(unittest.TestCase):
     def setUp(self):
@@ -17,12 +19,13 @@ class BaseTestPiera(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.base)
 
+
 class TestPieraConfig(unittest.TestCase):
     def test_load_empty_config(self):
         obj = StringIO.StringIO("")
 
         with self.assertRaisesRegexp(Exception, "Failed to parse base Hiera configuration"):
-            h = piera.Hiera(obj)
+            piera.Hiera(obj)
 
     def test_invalid_backends_config(self):
         obj = StringIO.StringIO("""
@@ -31,7 +34,7 @@ class TestPieraConfig(unittest.TestCase):
         """)
 
         with self.assertRaisesRegexp(Exception, "Invalid Backend: `nope`"):
-            h = piera.Hiera(obj)
+            piera.Hiera(obj)
 
     def test_invalid_hierarchy_config(self):
         obj = StringIO.StringIO("""
@@ -40,7 +43,7 @@ class TestPieraConfig(unittest.TestCase):
         """)
 
         with self.assertRaisesRegexp(Exception, "Invalid Base Hiera Config: missing hierarchy key"):
-            h = piera.Hiera(obj)
+            piera.Hiera(obj)
 
     def test_valid_config(self):
         obj = StringIO.StringIO("""
@@ -52,7 +55,8 @@ class TestPieraConfig(unittest.TestCase):
                 :datadir: data
         """)
 
-        h = piera.Hiera(obj)
+        piera.Hiera(obj)
+
 
 class TestPiera(BaseTestPiera):
     def test_different_path(self):
@@ -85,6 +89,17 @@ class TestPiera(BaseTestPiera):
         self.assertEquals(self.hiera.get('test_scope'), 'test')
         self.assertEquals(self.hiera.get('test_scope', name='wat'), 'wat')
         self.assertEquals(self.hiera.get('test_scope_ns', name='wat'), 'wat')
+
+    def test_get_functions_deeply(self):
+        self.assertEquals(self.hiera.get('test_resolve_hash', name='wat'), {
+            'a': 'wat',
+            'b': 1,
+            'c': 'hi'
+        })
+
+        self.assertEquals(self.hiera.get('test_resolve_array', name='wat'), [
+            'wat', 1, 'hi'
+        ])
 
     def test_raw_context(self):
         self.assertEquals(self.hiera.get('test_scope_ns', context={'name': 'wat'}), 'wat')
@@ -125,9 +140,18 @@ class TestPiera(BaseTestPiera):
         with self.assertRaises(AttributeError):
             hiera.magical_nonexistant_thing()
 
+    def test_override(self):
+        self.assertEquals(self.hiera.get('test_override'), 'b')
+
+    def test_merge(self):
+        self.assertEquals(self.hiera.get('test_basic_merge', merge=list), ['a', 'b'])
+        self.assertEquals(self.hiera.get('test_array_merge_a', merge=list), ['a', 'b', 'c'])
+        self.assertEquals(self.hiera.get('test_array_merge_b', merge=list), ['a', 'b', 'c', 'd'])
+        self.assertEquals(self.hiera.get('test_hash_merge_a', merge=dict), {'a': 1, 'b': 2})
+        self.assertEquals(self.hiera.get('test_hash_merge_b', merge=dict), {'a': 1, 'b': 1})
+
 if __name__ == "__main__":
     base = os.getcwd()
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     unittest.main()
     os.chdir(base)
-
