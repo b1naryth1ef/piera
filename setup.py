@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import os, sys
-import piera
+import os
+import sys
 
 try:
     from setuptools import setup
@@ -11,6 +11,10 @@ except ImportError:
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
+
+version = {}
+with open("piera/_version.py") as fp:
+        exec(fp.read(), version)
 
 packages = [
     'piera',
@@ -25,7 +29,7 @@ with open('README.md') as f:
 
 setup(
     name='piera',
-    version=piera.__VERSION__,
+    version=version['__version__'],
     description='a python hiera parser',
     long_description=readme + '\n\n',
     author='Andrei Zbikowski',
