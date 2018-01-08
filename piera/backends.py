@@ -1,5 +1,6 @@
-import yaml, json
+import json
 from collections import OrderedDict
+import yaml
 
 class Backend(object):
     """
