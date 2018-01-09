@@ -1,6 +1,7 @@
 import yaml, json
 from collections import OrderedDict
 
+
 class Backend(object):
     """
     Backends provide a way of loading data from files. They should
@@ -16,6 +17,7 @@ class Backend(object):
 
     def load(self, data):
         raise NotImplementedError("Subclasses must implement .load")
+
 
 class YAMLBackend(Backend):
     NAME = 'yaml'
@@ -37,9 +39,9 @@ class YAMLBackend(Backend):
                 construct_mapping)
         return yaml.load(stream, OrderedLoader)
 
+
 class JSONBackend(Backend):
     NAME = 'json'
 
     def load(self, data):
         return json.loads(data, object_pairs_hook=OrderedDict)
-

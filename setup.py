@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os, sys
-import piera
 
 try:
     from setuptools import setup
@@ -25,7 +24,7 @@ with open('README.md') as f:
 
 setup(
     name='piera',
-    version=piera.__VERSION__,
+    version='1.0.1',
     description='a python hiera parser',
     long_description=readme + '\n\n',
     author='Andrei Zbikowski',
@@ -39,7 +38,7 @@ setup(
     license='Apache 2.0',
     zip_safe=False,
     test_suite='tests',
-    classifiers=(
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Natural Language :: English',
@@ -49,5 +48,5 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
-    ),
+    ],
 )

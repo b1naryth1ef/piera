@@ -298,7 +298,10 @@ class Hiera(object):
         for backend in self.backends.values():
             for path in self.hierarchy:
                 try:
-                    path = os.path.join(self.base_path, backend.datadir.format(**new_context), path.format(**new_context))
+                    path = os.path.join(
+                        self.base_path,
+                        backend.datadir.format(**new_context),
+                        path.format(**new_context))
                 except KeyError:
                     continue
 
