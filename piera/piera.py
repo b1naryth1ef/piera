@@ -1,4 +1,6 @@
-import re, os
+import os
+import re
+import sys
 from collections import OrderedDict
 
 from .backends import YAMLBackend, JSONBackend
@@ -6,6 +8,12 @@ from .backends import YAMLBackend, JSONBackend
 function = re.compile(r'''%\{(scope|hiera|literal|alias)\(['"](?:::|)([^"']*)["']\)\}''')
 interpolate = re.compile(r'''%\{(?:::|)([^\}]*)\}''')
 rformat = re.compile(r'''%{(?:::|)([a-zA-Z_-|\d]+)}''')
+PY3 = sys.version_info >= (3, 0)
+
+if PY3:
+    string_types = (str, )
+else:
+    string_types = (str, unicode)
 
 
 class Merge(object):
@@ -27,7 +35,7 @@ class Merge(object):
         elif isinstance(self.value, set):
             self.value = self.value | set(value)
         elif isinstance(self.value, dict):
-            for k, v in value.iteritems():
+            for k, v in (value.items() if PY3 else value.iteritems()):
                 if k not in self.value:
                     self.value[k] = v
         else:
@@ -95,14 +103,15 @@ class Hiera(object):
 
         # Load our base YAML configuration
         self.base = YAMLBackend.load_ordered(self.base_file)
+        self.base_file.close()
 
         if not self.base:
             raise Exception("Failed to parse base Hiera configuration")
 
         # Load all backends
-        self.backends = {}
+        self.backends = OrderedDict()
         for backend in self.base[':backends']:
-            obj = filter(lambda i: i.NAME == backend, backends)
+            obj = [i for i in backends if i.NAME == backend]
             if not len(obj):
                 raise Exception("Invalid Backend: `{}`".format(backend))
             self.backends[backend] = obj[0](self, self.base.get(":{}".format(backend)))
@@ -151,7 +160,12 @@ class Hiera(object):
         """
         if path not in self.cache or ignore_cache:
             try:
-                self.cache[path] = backend.load(open(path).read().decode('utf8'))
+                with open(path) as fobj:
+                    raw_data = fobj.read()
+
+                if not PY3:
+                    raw_data = raw_data.decode('utf8')
+                self.cache[path] = backend.load(raw_data)
             except Exception as e:
                 raise Exception("Failed to load file {}: `{}`".format(path, e))
         return path
@@ -161,7 +175,7 @@ class Hiera(object):
         Returns true if any resolving or interpolation can be done on the provided
         string
         """
-        if (isinstance(s, str) or isinstance(s, unicode)) and (function.findall(s) or interpolate.findall(s)):
+        if isinstance(s, string_types) and (function.findall(s) or interpolate.findall(s)):
             return True
         return False
 
@@ -236,7 +250,7 @@ class Hiera(object):
         within a dictionary.
         """
         new_obj = OrderedDict()
-        for k, v in obj.iteritems():
+        for k, v in (obj.items() if PY3 else obj.iteritems()):
             new_obj[k] = self.resolve(v, paths, context, merge)
         return new_obj
 
@@ -313,7 +327,7 @@ class Hiera(object):
                     continue
 
                 if os.path.isdir(path):
-                    paths += list(self.load_directory(path, backend))
+                    paths.extend(list(self.load_directory(path, backend)))
                 elif os.path.exists(path + '.' + backend.NAME):
                     paths.append(self.load_file(path + '.' + backend.NAME, backend))
 
