@@ -24,7 +24,7 @@ with open('README.md') as f:
 
 setup(
     name='piera',
-    version='1.0.1',
+    version='1.1.0',
     description='a python hiera parser',
     long_description=readme + '\n\n',
     author='Andrei Zbikowski',
