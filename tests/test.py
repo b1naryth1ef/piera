@@ -24,7 +24,7 @@ class TestPieraConfig(unittest.TestCase):
     def test_load_empty_config(self):
         obj = StringIO.StringIO("")
 
-        with self.assertRaisesRegexp(Exception, "Failed to parse base Hiera configuration"):
+        with self.assertRaisesRegex(Exception, "Failed to parse base Hiera configuration"):
             piera.Hiera(obj)
 
     def test_invalid_backends_config(self):
@@ -33,7 +33,7 @@ class TestPieraConfig(unittest.TestCase):
                 - nope
         """)
 
-        with self.assertRaisesRegexp(Exception, "Invalid Backend: `nope`"):
+        with self.assertRaisesRegex(Exception, "Invalid Backend: `nope`"):
             piera.Hiera(obj)
 
     def test_invalid_hierarchy_config(self):
@@ -42,7 +42,7 @@ class TestPieraConfig(unittest.TestCase):
                 - yaml
         """)
 
-        with self.assertRaisesRegexp(Exception, "Invalid Base Hiera Config: missing hierarchy key"):
+        with self.assertRaisesRegex(Exception, "Invalid Base Hiera Config: missing hierarchy key"):
             piera.Hiera(obj)
 
     def test_valid_config(self):
@@ -62,63 +62,63 @@ class TestPiera(BaseTestPiera):
     def test_different_path(self):
         os.chdir("/tmp")
         hiera = piera.Hiera(os.path.join(self.base, 'hiera.yaml'), name='test')
-        self.assertEquals(hiera.get('test_basic_get'), 'test_basic_get_works')
-        self.assertEquals(hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
+        self.assertEqual(hiera.get('test_basic_get'), 'test_basic_get_works')
+        self.assertEqual(hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
 
     def test_get(self):
-        self.assertEquals(self.hiera.get('test_basic_get'), 'test_basic_get_works')
-        self.assertEquals(self.hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
-        self.assertEquals(self.hiera.get('test_hierarchy_get_2'), 'test_hierarchy_get_2_level2')
-        self.assertEquals(self.hiera.get('test_basic_get', name=None), None)
+        self.assertEqual(self.hiera.get('test_basic_get'), 'test_basic_get_works')
+        self.assertEqual(self.hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
+        self.assertEqual(self.hiera.get('test_hierarchy_get_2'), 'test_hierarchy_get_2_level2')
+        self.assertEqual(self.hiera.get('test_basic_get', name=None), None)
 
     def test_get_functions(self):
         # Test Alias
-        self.assertEquals(self.hiera.get('test_alias'), 'test_alias_works')
-        with self.assertRaisesRegexp(Exception, "Alias can not be used for string interpolation: `.*`"):
+        self.assertEqual(self.hiera.get('test_alias'), 'test_alias_works')
+        with self.assertRaisesRegex(Exception, "Alias can not be used for string interpolation: `.*`"):
             self.hiera.get('test_alias_invalid', name='test')
 
         # Test Hiera
         obj = self.hiera.get('test_complex_alias')
         self.assertTrue(isinstance(obj, dict))
-        self.assertEquals(obj['key1'], 'value1')
+        self.assertEqual(obj['key1'], 'value1')
 
         # Test Literal
-        self.assertEquals(self.hiera.get('test_literal'), 'hi')
+        self.assertEqual(self.hiera.get('test_literal'), 'hi')
 
         # Test Scope
-        self.assertEquals(self.hiera.get('test_scope'), 'test')
-        self.assertEquals(self.hiera.get('test_scope', name='wat'), 'wat')
-        self.assertEquals(self.hiera.get('test_scope_ns', name='wat'), 'wat')
+        self.assertEqual(self.hiera.get('test_scope'), 'test')
+        self.assertEqual(self.hiera.get('test_scope', name='wat'), 'wat')
+        self.assertEqual(self.hiera.get('test_scope_ns', name='wat'), 'wat')
 
     def test_get_functions_deeply(self):
-        self.assertEquals(self.hiera.get('test_resolve_hash', name='wat'), {
+        self.assertEqual(self.hiera.get('test_resolve_hash', name='wat'), {
             'a': 'wat',
             'b': 1,
             'c': 'hi'
         })
 
-        self.assertEquals(self.hiera.get('test_resolve_array', name='wat'), [
+        self.assertEqual(self.hiera.get('test_resolve_array', name='wat'), [
             'wat', 1, 'hi'
         ])
 
     def test_raw_context(self):
-        self.assertEquals(self.hiera.get('test_scope_ns', context={'name': 'wat'}), 'wat')
-        self.assertEquals(self.hiera.get('test_scope_ns', context={'name': 'wat'}, name='test'), 'test')
+        self.assertEqual(self.hiera.get('test_scope_ns', context={'name': 'wat'}), 'wat')
+        self.assertEqual(self.hiera.get('test_scope_ns', context={'name': 'wat'}, name='test'), 'test')
 
     def test_interpolate(self):
-        self.assertEquals(self.hiera.get('test_interpolate'), 'this is interpolated: test')
-        self.assertEquals(self.hiera.get('test_interpolate_ns'), 'this is interpolated: test')
+        self.assertEqual(self.hiera.get('test_interpolate'), 'this is interpolated: test')
+        self.assertEqual(self.hiera.get('test_interpolate_ns'), 'this is interpolated: test')
 
     def test_falsey_values(self):
-        self.assertEquals(self.hiera.get('test_empty_hash'), {})
-        self.assertEquals(self.hiera.get('test_empty_list'), [])
-        self.assertEquals(self.hiera.get('test_false_value'), False)
-        self.assertEquals(self.hiera.get('test_null_value'), None)
-        self.assertEquals(self.hiera.get('test_missing_value'), None)
+        self.assertEqual(self.hiera.get('test_empty_hash'), {})
+        self.assertEqual(self.hiera.get('test_empty_list'), [])
+        self.assertEqual(self.hiera.get('test_false_value'), False)
+        self.assertEqual(self.hiera.get('test_null_value'), None)
+        self.assertEqual(self.hiera.get('test_missing_value'), None)
 
     def test_default_value(self):
-        self.assertEquals(self.hiera.get('nope', default=42), 42)
-        self.assertEquals(self.hiera.get('test_literal', default=42), 'hi')
+        self.assertEqual(self.hiera.get('nope', default=42), 42)
+        self.assertEqual(self.hiera.get('test_literal', default=42), 'hi')
 
     def test_throw_keyerror(self):
         with self.assertRaises(KeyError):
@@ -130,25 +130,25 @@ class TestPiera(BaseTestPiera):
 
     def test_rescope(self):
         hiera = self.hiera.scoped(name='wat')
-        self.assertEquals(hiera.get('test_scope'), 'wat')
-        self.assertEquals(hiera.get('test_scope_ns'), 'wat')
-        self.assertEquals(hiera.get('test_scope_ns', name='test'), 'test')
+        self.assertEqual(hiera.get('test_scope'), 'wat')
+        self.assertEqual(hiera.get('test_scope_ns'), 'wat')
+        self.assertEqual(hiera.get('test_scope_ns', name='test'), 'test')
 
         # Make sure we can still access the base hiera stuff
-        self.assertEquals(hiera.base_file, self.hiera.base_file)
+        self.assertEqual(hiera.base_file, self.hiera.base_file)
 
         with self.assertRaises(AttributeError):
             hiera.magical_nonexistant_thing()
 
     def test_override(self):
-        self.assertEquals(self.hiera.get('test_override'), 'b')
+        self.assertEqual(self.hiera.get('test_override'), 'b')
 
     def test_merge(self):
-        self.assertEquals(self.hiera.get('test_basic_merge', merge=list), ['a', 'b'])
-        self.assertEquals(self.hiera.get('test_array_merge_a', merge=list), ['a', 'b', 'c'])
-        self.assertEquals(self.hiera.get('test_array_merge_b', merge=list), ['a', 'b', 'c', 'd'])
-        self.assertEquals(self.hiera.get('test_hash_merge_a', merge=dict), {'a': 1, 'b': 2})
-        self.assertEquals(self.hiera.get('test_hash_merge_b', merge=dict), {'a': 1, 'b': 1})
+        self.assertEqual(self.hiera.get('test_basic_merge', merge=list), ['a', 'b'])
+        self.assertEqual(self.hiera.get('test_array_merge_a', merge=list), ['a', 'b', 'c'])
+        self.assertEqual(self.hiera.get('test_array_merge_b', merge=list), ['a', 'b', 'c', 'd'])
+        self.assertEqual(self.hiera.get('test_hash_merge_a', merge=dict), {'a': 1, 'b': 2})
+        self.assertEqual(self.hiera.get('test_hash_merge_b', merge=dict), {'a': 1, 'b': 1})
 
 if __name__ == "__main__":
     base = os.getcwd()
