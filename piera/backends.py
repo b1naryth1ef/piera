@@ -8,6 +8,7 @@ class Backend(object):
     override .load with a custom loading method.
     """
     NAME = None
+    EXTS = set()
 
     def __init__(self, parent, obj=None):
         self.parent = parent
@@ -21,6 +22,7 @@ class Backend(object):
 
 class YAMLBackend(Backend):
     NAME = 'yaml'
+    EXTS = {'yaml', 'yml'}
 
     def load(self, data):
         return self.load_ordered(data)
@@ -42,6 +44,7 @@ class YAMLBackend(Backend):
 
 class JSONBackend(Backend):
     NAME = 'json'
+    EXTS = {'json'}
 
     def load(self, data):
         return json.loads(data, object_pairs_hook=OrderedDict)

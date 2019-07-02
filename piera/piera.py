@@ -134,10 +134,16 @@ class Hiera(object):
         based on our backends. Optionally can only load for one backend.
         """
         for root, dirs, files in os.walk(path):
-            for f in files:
-                backend = backend or self.backends.get(':{}'.format(os.path.splitext(f)[-1]))
-                if backend:
-                    yield self.load_file(os.path.join(root, f), backend)
+            for file_path in files:
+                ext = os.path.splitext(file_path)[-1]
+                if backend and ext not in backend.EXTS:
+                    continue
+                else:
+                    backend = self.backends.get(':{}'.format(ext))
+                    if not backend:
+                        continue
+
+                yield self.load_file(os.path.join(root, file_path), backend)
 
     def load_file(self, path, backend, ignore_cache=False):
         """
