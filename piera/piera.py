@@ -35,18 +35,18 @@ class Merge(object):
 
 
 class ScopedHiera(object):
-    def __init__(self, hiera, context={}):
+    def __init__(self, hiera, context=None):
         self.hiera = hiera
-        self.context = context
+        self.context = context or {}
 
     def has(self, key, **kwargs):
         kwargs.update(self.context)
         return self.hiera.has(key, **kwargs)
 
-    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context={}, **kwargs):
+    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context=None, **kwargs):
         new_context = {}
         new_context.update(self.context)
-        new_context.update(context)
+        new_context.update(context or {})
         new_context.update(kwargs)
         return self.hiera.get(key, default, merge, merge_deep, throw, new_context)
 
@@ -69,9 +69,9 @@ class Hiera(object):
         liftime of this instance.
     :param kwargs: Any additional kwargs will be added to the context
     """
-    def __init__(self, base_file, backends=None, context={}, **kwargs):
+    def __init__(self, base_file, backends=None, context=None, **kwargs):
         self.base_file = base_file
-        self.context = context
+        self.context = context or {}
         self.context.update(kwargs)
 
         self.cache = {}
@@ -262,7 +262,8 @@ class Hiera(object):
 
         raise KeyError(key)
 
-    def scoped(self, context={}, **kwargs):
+    def scoped(self, context=None, **kwargs):
+        context = context or {}
         context.update(kwargs)
         return ScopedHiera(self, context)
 
@@ -276,7 +277,7 @@ class Hiera(object):
         except KeyError:
             return False
 
-    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context={}, **kwargs):
+    def get(self, key, default=None, merge=None, merge_deep=False, throw=False, context=None, **kwargs):
         """
         Attempts to retrieve a hiera variable by fully resolving its location.
 
@@ -292,7 +293,7 @@ class Hiera(object):
         """
         new_context = {}
         new_context.update(self.context)
-        new_context.update(context)
+        new_context.update(context or {})
         new_context.update(kwargs)
 
         # Filter None values
