@@ -36,3 +36,7 @@ assert h.get("key_hiera") == "OHAI value"
 # Give piera context
 assert h.get("my_context_based_key", name='test01', environment='qa') == "context is great!"
 ```
+
+### Requirements
+
+* Python 2.7+
