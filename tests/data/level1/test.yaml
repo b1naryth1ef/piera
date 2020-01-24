@@ -23,3 +23,6 @@ test_hash_merge_a:
 test_hash_merge_b:
   a: 1
   b: 1
+
+test_interpolated_hash_merge:
+  a: "override-a-%{hiera('test_literal')}"

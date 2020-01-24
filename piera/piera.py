@@ -190,12 +190,12 @@ class Hiera(object):
         if len(calls) == 1 and calls[0][0] == 'alias':
             if function.sub("", s) != "":
                 raise Exception("Alias can not be used for string interpolation: `{}`".format(s))
-            return self.get_key(calls[0][1], paths, context, merge)
+            return self.get_key(calls[0][1], paths, context, None)
 
         # Iterate over all function calls and string interpolate their resolved values
         for call, arg in calls:
             if call == 'hiera':
-                replace = self.get_key(arg, paths, context, merge)
+                replace = self.get_key(arg, paths, context, None)
             elif call == 'scope':
                 replace = context.get(arg)
             elif call == 'literal':

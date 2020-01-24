@@ -150,6 +150,9 @@ class TestPiera(BaseTestPiera):
         self.assertEqual(self.hiera.get('test_hash_merge_a', merge=dict), {'a': 1, 'b': 2})
         self.assertEqual(self.hiera.get('test_hash_merge_b', merge=dict), {'a': 1, 'b': 1})
 
+    def test_interpolated_merge(self):
+        self.assertEqual(self.hiera.get('test_interpolated_hash_merge', merge=dict), {'a': 'override-a-hi', 'b': 'default-b-hi'})
+
 if __name__ == "__main__":
     base = os.getcwd()
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
