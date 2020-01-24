@@ -34,3 +34,7 @@ test_hash_merge_a:
 test_hash_merge_b:
   a: 2
   b: 2
+
+test_interpolated_hash_merge:
+  a: "default-a-%{hiera('test_literal')}"
+  b: "default-b-%{hiera('test_literal')}"
