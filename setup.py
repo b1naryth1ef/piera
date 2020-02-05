@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 
-import os, sys
-
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
-
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist upload')
-    sys.exit()
 
 packages = [
     'piera',
@@ -24,9 +18,10 @@ with open('README.md') as f:
 
 setup(
     name='piera',
-    version='1.1.0',
+    version='1.2.0',
     description='a python hiera parser',
     long_description=readme + '\n\n',
+    long_description_content_type="text/markdown",
     author='Andrei Zbikowski',
     author_email='andrei.zbikowski@gmail.com',
     url='http://github.com/b1naryth1ef/piera',
