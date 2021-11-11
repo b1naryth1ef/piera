@@ -14,7 +14,8 @@ class Backend(object):
         self.parent = parent
 
         self.obj = obj or {}
-        self.datadir = self.obj.get(":datadir", "/etc/puppetlabs/code/environments/%{environment}/hieradata")
+        datadir_key = ":datadir" if parent.version == 3 else "datadir"
+        self.datadir = self.obj.get(datadir_key, "/etc/puppetlabs/code/environments/%{environment}/hieradata")
 
     def load(self, data):
         raise NotImplementedError("Subclasses must implement .load")

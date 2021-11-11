@@ -1,0 +1,11 @@
+version: 5
+defaults:
+  data_hash: yaml_data
+  datadir: data
+hierarchy:
+  - "level1/%{::name}"
+  - "level2/%{name}"
+  - "level3/%{name}"
+  - "level4/%{name}"
+  - "level1/common"
+  - "level2/common"

@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 import piera
 
@@ -7,13 +8,15 @@ try:
 except ImportError:
     import io as StringIO
 
+data_filename = 'v5_hiera.yaml'
 current_dirname, _ = os.path.split(os.path.abspath(__file__))
 
 
 class BaseTestPiera(unittest.TestCase):
     def setUp(self):
         self.base = current_dirname
-        self.hiera = piera.Hiera(os.path.join(current_dirname, 'hiera.yaml'),
+        self.hiera = piera.Hiera(os.path.join(current_dirname, data_filename),
+                                 version=5,
                                  name='test')
 
     def tearDown(self):
@@ -60,8 +63,8 @@ class TestPieraConfig(unittest.TestCase):
 
 class TestPiera(BaseTestPiera):
     def test_different_path(self):
-        os.chdir("/tmp")
-        hiera = piera.Hiera(os.path.join(self.base, 'hiera.yaml'), name='test')
+        os.chdir(tempfile.gettempdir())
+        hiera = piera.Hiera(os.path.join(self.base, data_filename), version=5, name='test')
         self.assertEqual(hiera.get('test_basic_get'), 'test_basic_get_works')
         self.assertEqual(hiera.get('test_hierarchy_get'), 'test_hierarchy_get_level1')
 
