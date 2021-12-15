@@ -1,3 +1,5 @@
+## This repository is no longer maintained, please see [https://github.com/clearbank/piera/](https://github.com/clearbank/piera/) for an updated fork.
+
 # Piera
 Piera is a lightweight, pure-Python [Hiera](http://docs.puppetlabs.com/hiera/) parser. It was built to help bridge the gap between Puppet/Hiera and Python system scripts. Piera is currently not feature complete, lacking some less-used interoplation and loading features (feel free to contribute!)
 
